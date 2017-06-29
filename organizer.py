@@ -38,6 +38,9 @@ def press(btn):
 		tempDir = r"C:\\work\test\tempp"
 		if not os.path.exists(tempDir):
 			os.mkdir(tempDir)
+		else:
+			for file in [pdf for pdf in os.listdir(tempDir)]:
+					os.remove(file)	
 
 		strDir1 = r"C:\\work\test\source1"			#r'\\tal-fs01\\GalzingReports\\'
 		strDir2 = r"C:\\work\test\source2"			#users directory
