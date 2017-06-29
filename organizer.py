@@ -1,3 +1,6 @@
+
+
+
 '''
 Project: Custom PDF Merger
 Date: 07.06.2017
@@ -9,19 +12,20 @@ E-mail: irina.skripkina@toroaluminum.ca
 from appJar import gui
 from PyPDF2 import PdfFileWriter, PdfFileReader, PdfFileMerger
 from shutil import copyfile
+from subprocess import check_output
 import os, sys, glob, shutil
 import subprocess
 import re
 
 
-listBP = [];
-listDC = [];
 listGR = [];
-listYR = [];
-listSR = [];
+listVR = [];
 listPS = [];
+listBP = [];
+
 allLists1 = [];
-allLists2 = [];
+allLists2 = [];  
+
 
 
 #GUI customization goes here:
@@ -30,183 +34,139 @@ def press(btn):
 	if btn=="Cancel":
 		app.stop()
 	else:
-		strDir1 = "C:\work\\target1" #app.getEntry('target1')
-		strDir2 = "C:\work\\target2" #app.getEntry('target2')
-		name = app.getEntry('fileName')	
-		dest1 = "C:\work\dest1" #app.getEntry('dest')
-		dest2 = "C:\work\dest2"
+
+		tempDir = r"C:\\work\test\tempp"
+		if not os.path.exists(tempDir):
+			os.mkdir(tempDir)
+
+		strDir1 = r"C:\\work\test\source1"			#r'\\tal-fs01\\GalzingReports\\'
+		strDir2 = r"C:\\work\test\source2"			#users directory
+		
+		name = app.getEntry('fileName')	        
+		dest1 = r"C:\work\test\dest1" #app.getEntry('dest')
+		dest2 = r"C:\work\test\dest2"
 		file_list = [] #unsorted file list
 
 		
 		if (len(name) != 8):
 			app.setLabel("msg", "Invalid file number, try again.")
-			app.clearEntry("fileName")
-
-		
+			app.clearEntry("fileName")		
 
 		else:
-			#os.chdir(strDir1) #navigate to target direcotry	
+			
+			os.chdir(strDir1) #navigate to target direcotry	
 
 			for file in [pdf for pdf in os.listdir(strDir1)      #fill the list with required files
-			if ((pdf.endswith(".pdf")) and (name in pdf) and ("WP" not in pdf))]:
+			if ((pdf.endswith(".pdf")) and (name in pdf))]:
 				file_list.append(file)
-
+				shutil.copy2(file, tempDir)
+			
+			os.chdir(strDir2)
 			for file in [pdf for pdf in os.listdir(strDir2)      #fill the list with required files
-			if ((pdf.endswith(".pdf")) and (name in pdf) and ("WP" not in pdf))]:
+			if ((pdf.endswith(".pdf")) and (name in pdf))]:
 				file_list.append(file)
-
+				shutil.copy2(file, tempDir)
+			
+			
 			if (not file_list):
 				app.setLabel("msg", "No files found, try again.")
 				app.clearEntry("fileName")
 
 			else:
-				merger = PdfFileMerger() #new merging object
-
-				for i in file_list:      #merge pdfs
-				#	merger.append(i)
+				
+				
+				os.chdir(tempDir)
+				for i in file_list:      
+				
 					twoLet = i[0] + i[1]
-					if(twoLet.lower() == 'bp'):
-						listBP.append(i)
-					elif(twoLet.lower() == 'dc'):
-						listDC.append(i)
-					elif(twoLet.lower() == 'gr'):
+					if(twoLet.lower() == 'gr'):
 						listGR.append(i)
-					elif(twoLet.lower() == 'yr'):
-						listYR.append(i)
-					elif(twoLet.lower() == 'sr'):
-						listSR.append(i)
+					elif(twoLet.lower() == 'vr'):
+						listVR.append(i)
 					elif(twoLet.lower() == 'ps'):
 						listPS.append(i)
+					elif(twoLet.lower() == 'bp'):
+						listBP.append(i)				
 					else:
 						print("Error processing files")
 
-				allLists1 = [listBP, listDC, listGR]
+				allLists1 = [listGR, listVR, listPS, listBP]
 				for i in allLists1:
 					if(len(i) > 1):
-						pageMerge(i, strDir1, name)
-
-				allLists2 = [listYR, listSR, listPS]
-				for i in allLists2:
-					if(len(i) > 1):
-						pageMerge(i, strDir2, name)
-
+						pageMerge(i, tempDir, name)					
 
 
 				#STARTING OVER HERE
 				####################################################################
-				listBP.clear()
-				listGR.clear()
-				listDC.clear()
-				listYR.clear()
-				listSR.clear()
-				listPS.clear()
+				
+
+				for i in allLists1:
+					i.clear()				
 				file_list.clear()
-				allLists1.clear()
-				allLists2.clear()
+				allLists1.clear()				
 
 
-
-				for file in [pdf for pdf in os.listdir(strDir1)      #fill the list with required files
-				if ((pdf.endswith(".pdf")) and ((name in pdf) or ("_UPDATED" in pdf)) and (pdf[10].lower() + pdf[11].lower() != 'pg' ))]:
-					file_list.append(file)
-
-				for file in [pdf for pdf in os.listdir(strDir2)      #fill the list with required files
-				if ((pdf.endswith(".pdf")) and ((name in pdf) or ("_UPDATED" in pdf)) and (pdf[10].lower() + pdf[11].lower() != 'pg' ))]:
-					file_list.append(file)
-
+				for file in [pdf for pdf in os.listdir(tempDir)      #fill the list with required files
+				if ((pdf.endswith(".pdf")) and (name in pdf))]:
+					file_list.append(file)				
+				
 
 				for i in file_list:
 					twoLet = i[0] + i[1]
-					if(twoLet.lower() == 'bp'):
-						listBP.append(i)
-					elif(twoLet.lower() == 'dc'):
-						listDC.append(i)
-					elif(twoLet.lower() == 'gr'):
+					if(twoLet.lower() == 'gr'):
 						listGR.append(i)
-					elif(twoLet.lower() == 'yr'):
-						listYR.append(i)
-					elif(twoLet.lower() == 'sr'):
-						listSR.append(i)
+					elif(twoLet.lower() == 'vr'):
+						listVR.append(i)
 					elif(twoLet.lower() == 'ps'):
 						listPS.append(i)
+					elif(twoLet.lower() == 'bp'):
+						listBP.append(i)
 					else:
-						print("Error processing files")
-
+						print("Error processing files")				
 				
-				file_list.clear()
-				allLists1 = [listBP, listDC, listGR, listYR, listSR, listPS]
-				for i in allLists1:
-					if(len(i) > 1):
-						for j in i:
-							if("_UPDATED" in j):
-								file_list.append(j)
-					if(len(i) == 1):
-						file_list.append(i[0])
-
 
 				sortedList1=[]	
-				sortedList2=[]
-				os.chdir(strDir1)
+				
+				os.chdir(tempDir)
+				for i in file_list:
+					if("gr" in i.lower()):
+						sortedList1.append(i)
+				for i in file_list:
+					if("vr" in i.lower()):
+						sortedList1.append(i)
+				for i in file_list:
+					if("ps" in i.lower()):
+						sortedList1.append(i)
 				for i in file_list:
 					if("bp" in i.lower()):
 						sortedList1.append(i)
-				for i in file_list:
-					if("dc" in i.lower()):
-						sortedList1.append(i)
-				for i in file_list:
-					if("gr" in i.lower()):
-						sortedList1.append(i)				
+							
 
 				finalPDF = PdfFileMerger()
 				for i in sortedList1:
 					shutil.copy2(i, dest2)
-					finalPDF.append(i)
+					finalPDF.append(i)	
 
-
-
-
-				os.chdir(strDir2)
-				for i in file_list:
-					if("yr" in i.lower()):
-						sortedList2.append(i)
-				for i in file_list:
-					if("sr" in i.lower()):
-						sortedList2.append(i)
-				for i in file_list:
-					if("ps" in i.lower()):
-						sortedList2.append(i)
-
-				for i in sortedList2:
-					shutil.copy2(i, dest2)
-					finalPDF.append(i)
-
-
+				
 
 				finalPDF.write(dest1 + "\\" +"WP" + name + ".pdf") #create new WP file with all pdfs
 				finalPDF.close()
 
 				#clear all the lists for future use
 
-				listBP.clear()
 				listGR.clear()
-				listDC.clear()
-				listYR.clear()
-				listSR.clear()
+				listVR.clear()
 				listPS.clear()
+				listBP.clear()
 				file_list.clear()
 				allLists1.clear()
 				sortedList1.clear()
-				sortedList2.clear()
 
+				app.setLabel("msg", "Success.")	
 
-				app.setLabel("msg", "Success.")
-
-				for pdf in glob.glob("*_UPDATED.pdf"):
-					os.remove(pdf)
-
-				os.chdir(strDir1)
-				for pdf in glob.glob("*_UPDATED.pdf"):
-					os.remove(pdf)
+				for file in [pdf for pdf in os.listdir(tempDir)]:
+					os.remove(file)						
+				
 
 
  
@@ -233,9 +193,16 @@ def pageMerge(listPG, strDir, pNum):
 		
 		pgsInserted += 1
 
-	newPDF.write((i[0] + i[1]).upper() + pNum + "_UPDATED.pdf")
+
+	newPDF.write((i[0] + i[1]).upper() + pNum + "new.pdf")
 	newPDF.close()
 
+	for file in [pdf for pdf in os.listdir(strDir)      
+	if ((pdf.endswith(".pdf")) and (pdf[10].lower() + pdf[11].lower() == 'pg' ))]:
+		os.remove(file)
+
+	os.remove((i[0] + i[1]).upper() + pNum + ".pdf")
+	os.rename(((i[0] + i[1]).upper() + pNum + "new.pdf"), ((i[0] + i[1]).upper() + pNum + ".pdf"))
 
 
 app = gui("Custom PDF Merger", "700x200")
@@ -248,5 +215,6 @@ app.go()
 
 
 
+#7124
 
 
